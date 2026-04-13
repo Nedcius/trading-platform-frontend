@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-platform-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-platform-frontend
+  template:
+    metadata:
+      labels:
+        app: trading-platform-frontend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: frontend
+          image: ghcr.io/nedcius/trading-platform-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
