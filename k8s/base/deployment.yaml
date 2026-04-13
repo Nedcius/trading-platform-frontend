@@ -16,7 +16,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: frontend
-          image: ghcr.io/nedcius/trading-platform-frontend:latest
+          image: ghcr.io/nedcius/trading-platform-frontend:sha-16eaebe
           imagePullPolicy: Always
           ports:
             - containerPort: 80
