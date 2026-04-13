@@ -18,6 +18,14 @@ function formatPrice(value) {
   }).format(value);
 }
 
+function formatLocalTickTime(timestamp) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(timestamp * 1000));
+}
+
 export default function CandlesChart({ data }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -47,6 +55,7 @@ export default function CandlesChart({ data }) {
       },
       localization: {
         priceFormatter: formatPrice,
+        timeFormatter: formatLocalTickTime,
       },
     });
 
