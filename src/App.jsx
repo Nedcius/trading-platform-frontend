@@ -91,31 +91,6 @@ export default function App() {
 
       <main className="workspace">
         <section className="chart-panel">
-          <div className="market-strip">
-            <div className="market-main">
-              <h1>{symbol}</h1>
-              <p>{timeframe} market view</p>
-            </div>
-            <div className="market-stats">
-              <div className="stat-card">
-                <span>Last</span>
-                <strong>{latest?.close ?? '-'}</strong>
-              </div>
-              <div className="stat-card">
-                <span>High</span>
-                <strong>{latest?.high ?? '-'}</strong>
-              </div>
-              <div className="stat-card">
-                <span>Low</span>
-                <strong>{latest?.low ?? '-'}</strong>
-              </div>
-              <div className="stat-card">
-                <span>Volume</span>
-                <strong>{latest?.volume ?? '-'}</strong>
-              </div>
-            </div>
-          </div>
-
           <div className="chart-frame">
             <CandlesChart data={candles} />
           </div>
@@ -144,6 +119,7 @@ export default function App() {
             <ul className="sidebar-list">
               <li>Preferred symbol: {symbol}</li>
               <li>Working timeframe: {timeframe}</li>
+              <li>Last close: {latest?.close ?? 'Waiting for data'}</li>
               <li>Latest candle time: {latest?.ts ?? 'Waiting for data'}</li>
             </ul>
           </div>
