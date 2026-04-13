@@ -16,6 +16,18 @@ function formatUtcTimestamp(ts) {
     hour12: false,
   });
 }
+
+function formatPrice(value) {
+  if (value === null || value === undefined || value === '') return 'Waiting for data';
+
+  const number = Number(value);
+  if (Number.isNaN(number)) return value;
+
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  }).format(number);
+}
 import CandlesChart from './components/CandlesChart';
 
 const API_BASE = '/api';
@@ -136,7 +148,7 @@ export default function App() {
             <ul className="sidebar-list">
               <li>Preferred symbol: {symbol}</li>
               <li>Working timeframe: {timeframe}</li>
-              <li>Last close: {latest?.close ?? 'Waiting for data'}</li>
+              <li>Last close: {formatPrice(latest?.close)}</li>
               <li>Latest candle time: {formatUtcTimestamp(latest?.ts)}</li>
             </ul>
           </div>

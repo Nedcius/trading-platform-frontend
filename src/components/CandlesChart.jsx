@@ -11,6 +11,13 @@ function toChartCandle(candle) {
   };
 }
 
+function formatPrice(value) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export default function CandlesChart({ data }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -38,6 +45,9 @@ export default function CandlesChart({ data }) {
         timeVisible: true,
         secondsVisible: false,
       },
+      localization: {
+        priceFormatter: formatPrice,
+      },
     });
 
     const series = chart.addCandlestickSeries({
@@ -46,6 +56,11 @@ export default function CandlesChart({ data }) {
       borderVisible: false,
       wickUpColor: '#22c55e',
       wickDownColor: '#ef4444',
+      priceFormat: {
+        type: 'price',
+        precision: 2,
+        minMove: 0.1,
+      },
     });
 
     const timeScale = chart.timeScale();
