@@ -58,6 +58,10 @@ select {
   gap: 10px;
 }
 
+.compact-control select {
+  min-width: 140px;
+}
+
 .topbar-label {
   color: #94a3b8;
   font-size: 13px;
@@ -116,8 +120,101 @@ button.active,
   padding: 8px 12px 12px;
 }
 
-.chart-frame > div {
+.chart-stack {
+  position: relative;
   height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 140px;
+  gap: 8px;
+}
+
+.main-chart-canvas,
+.delta-chart-canvas {
+  min-height: 0;
+}
+
+.footprint-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 360px;
+  max-height: calc(100% - 164px);
+  overflow: auto;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.footprint-header,
+.footprint-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 90px;
+  gap: 10px;
+  align-items: center;
+}
+
+.footprint-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px;
+  background: #0f172a;
+  border-bottom: 1px solid #1f2937;
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.footprint-body {
+  padding: 8px 12px 12px;
+}
+
+.footprint-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.footprint-row:last-child {
+  border-bottom: none;
+}
+
+.footprint-time,
+.footprint-price-range small,
+.divider {
+  color: #94a3b8;
+}
+
+.footprint-price-range strong,
+.footprint-flow,
+.footprint-delta {
+  display: block;
+}
+
+.footprint-price-range small {
+  display: block;
+  margin-top: 4px;
+}
+
+.footprint-flow {
+  font-variant-numeric: tabular-nums;
+}
+
+.buy-volume {
+  color: #22c55e;
+}
+
+.sell-volume {
+  color: #ef4444;
+}
+
+.footprint-delta.positive {
+  color: #22c55e;
+}
+
+.footprint-delta.negative {
+  color: #ef4444;
 }
 
 .right-sidebar {
@@ -178,8 +275,18 @@ button.active,
   margin-top: 8px;
 }
 
+@media (max-width: 1400px) {
+  .footprint-overlay {
+    width: 320px;
+  }
+}
+
 @media (max-width: 1200px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .footprint-overlay {
+    width: 280px;
   }
 }

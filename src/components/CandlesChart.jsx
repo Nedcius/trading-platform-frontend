@@ -1,15 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
-
-function toChartCandle(candle) {
-  return {
-    time: Math.floor(new Date(candle.ts).getTime() / 1000),
-    open: Number(candle.open),
-    high: Number(candle.high),
-    low: Number(candle.low),
-    close: Number(candle.close),
-  };
-}
 
 function formatPrice(value) {
   return new Intl.NumberFormat(undefined, {
@@ -26,19 +16,64 @@ function formatLocalTickTime(timestamp) {
   }).format(new Date(timestamp * 1000));
 }
 
-export default function CandlesChart({ data }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-  const seriesRef = useRef(null);
+function toChartCandle(candle) {
+  return {
+    time: Math.floor(new Date(candle.ts).getTime() / 1000),
+    open: Number(candle.open),
+    high: Number(candle.high),
+    low: Number(candle.low),
+    close: Number(candle.close),
+  };
+}
+
+function toDeltaBars(data) {
+  return data.map((candle) => {
+    const delta = Number(candle.buy_volume || 0) - Number(candle.sell_volume || 0);
+    return {
+      time: Math.floor(new Date(candle.ts).getTime() / 1000),
+      value: delta,
+      color: delta >= 0 ? '#22c55e' : '#ef4444',
+    };
+  });
+}
+
+function toFootprintRows(data) {
+  return data.slice(-14).reverse().map((candle) => {
+    const buyVolume = Number(candle.buy_volume || 0);
+    const sellVolume = Number(candle.sell_volume || 0);
+    const delta = buyVolume - sellVolume;
+
+    return {
+      ts: candle.ts,
+      open: Number(candle.open),
+      high: Number(candle.high),
+      low: Number(candle.low),
+      close: Number(candle.close),
+      buyVolume,
+      sellVolume,
+      delta,
+      totalVolume: Number(candle.volume || 0),
+      tradeCount: Number(candle.trade_count || 0),
+    };
+  });
+}
+
+function ChartCanvas({ data, chartType }) {
+  const mainContainerRef = useRef(null);
+  const deltaContainerRef = useRef(null);
+  const mainChartRef = useRef(null);
+  const deltaChartRef = useRef(null);
+  const mainSeriesRef = useRef(null);
+  const deltaSeriesRef = useRef(null);
   const initializedRef = useRef(false);
   const lastTimeRef = useRef(null);
   const visibleRangeRef = useRef(null);
   const isUserInteractingRef = useRef(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!mainContainerRef.current || !deltaContainerRef.current) return;
 
-    const chart = createChart(containerRef.current, {
+    const mainChart = createChart(mainContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#111827' },
         textColor: '#e5e7eb',
@@ -47,8 +82,8 @@ export default function CandlesChart({ data }) {
         vertLines: { color: '#1f2937' },
         horzLines: { color: '#1f2937' },
       },
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight || 500,
+      width: mainContainerRef.current.clientWidth,
+      height: mainContainerRef.current.clientHeight || 420,
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
@@ -59,7 +94,30 @@ export default function CandlesChart({ data }) {
       },
     });
 
-    const series = chart.addCandlestickSeries({
+    const deltaChart = createChart(deltaContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0f172a' },
+        textColor: '#94a3b8',
+      },
+      grid: {
+        vertLines: { color: '#1f2937' },
+        horzLines: { color: '#1f2937' },
+      },
+      width: deltaContainerRef.current.clientWidth,
+      height: deltaContainerRef.current.clientHeight || 140,
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      rightPriceScale: {
+        borderColor: '#1f2937',
+      },
+      localization: {
+        timeFormatter: formatLocalTickTime,
+      },
+    });
+
+    const mainSeries = mainChart.addCandlestickSeries({
       upColor: '#22c55e',
       downColor: '#ef4444',
       borderVisible: false,
@@ -72,24 +130,40 @@ export default function CandlesChart({ data }) {
       },
     });
 
-    const timeScale = chart.timeScale();
-    timeScale.subscribeVisibleLogicalRangeChange((range) => {
+    const deltaSeries = deltaChart.addHistogramSeries({
+      priceFormat: {
+        type: 'volume',
+      },
+      base: 0,
+    });
+
+    const syncRange = (range) => {
       visibleRangeRef.current = range;
       if (!range) return;
+
+      deltaChart.timeScale().setVisibleLogicalRange(range);
 
       const latestIndex = Math.max(data.length - 1, 0);
       const distanceFromRight = latestIndex - range.to;
       isUserInteractingRef.current = distanceFromRight > 3;
-    });
+    };
 
-    chartRef.current = chart;
-    seriesRef.current = series;
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(syncRange);
+
+    mainChartRef.current = mainChart;
+    deltaChartRef.current = deltaChart;
+    mainSeriesRef.current = mainSeries;
+    deltaSeriesRef.current = deltaSeries;
 
     const handleResize = () => {
-      if (!containerRef.current) return;
-      chart.applyOptions({
-        width: containerRef.current.clientWidth,
-        height: containerRef.current.clientHeight || 500,
+      if (!mainContainerRef.current || !deltaContainerRef.current) return;
+      mainChart.applyOptions({
+        width: mainContainerRef.current.clientWidth,
+        height: mainContainerRef.current.clientHeight || 420,
+      });
+      deltaChart.applyOptions({
+        width: deltaContainerRef.current.clientWidth,
+        height: deltaContainerRef.current.clientHeight || 140,
       });
     };
 
@@ -97,45 +171,99 @@ export default function CandlesChart({ data }) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
+      mainChart.remove();
+      deltaChart.remove();
     };
   }, []);
 
   useEffect(() => {
-    if (!seriesRef.current || !chartRef.current || !data.length) return;
+    if (!mainSeriesRef.current || !deltaSeriesRef.current || !mainChartRef.current || !deltaChartRef.current || !data.length) {
+      return;
+    }
 
-    const chartData = data.map(toChartCandle);
-    const latest = chartData[chartData.length - 1];
+    const candleData = data.map(toChartCandle);
+    const deltaBars = toDeltaBars(data);
+    const latest = candleData[candleData.length - 1];
     const previousLastTime = lastTimeRef.current;
 
     if (!initializedRef.current) {
-      seriesRef.current.setData(chartData);
-      chartRef.current.timeScale().fitContent();
+      mainSeriesRef.current.setData(candleData);
+      deltaSeriesRef.current.setData(deltaBars);
+      mainChartRef.current.timeScale().fitContent();
+      deltaChartRef.current.timeScale().fitContent();
       initializedRef.current = true;
       lastTimeRef.current = latest.time;
       return;
     }
 
     if (previousLastTime === latest.time) {
-      seriesRef.current.update(latest);
+      mainSeriesRef.current.update(latest);
+      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
     } else if (previousLastTime && latest.time > previousLastTime) {
-      const previous = chartData[chartData.length - 2];
-      if (previous) {
-        seriesRef.current.update(previous);
-      }
-      seriesRef.current.update(latest);
+      const previousCandle = candleData[candleData.length - 2];
+      const previousDelta = deltaBars[deltaBars.length - 2];
+      if (previousCandle) mainSeriesRef.current.update(previousCandle);
+      if (previousDelta) deltaSeriesRef.current.update(previousDelta);
+      mainSeriesRef.current.update(latest);
+      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
     } else {
-      seriesRef.current.setData(chartData);
+      mainSeriesRef.current.setData(candleData);
+      deltaSeriesRef.current.setData(deltaBars);
     }
 
     lastTimeRef.current = latest.time;
 
     if (!isUserInteractingRef.current) {
-      chartRef.current.timeScale().scrollToRealTime();
+      mainChartRef.current.timeScale().scrollToRealTime();
+      deltaChartRef.current.timeScale().scrollToRealTime();
     } else if (visibleRangeRef.current) {
-      chartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+      mainChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+      deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
     }
   }, [data]);
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div className="chart-stack">
+      <div ref={mainContainerRef} className="main-chart-canvas" />
+      <div ref={deltaContainerRef} className="delta-chart-canvas" />
+      {chartType === 'footprint' && <FootprintOverlay data={data} />}
+    </div>
+  );
+}
+
+function FootprintOverlay({ data }) {
+  const rows = useMemo(() => toFootprintRows(data), [data]);
+
+  return (
+    <div className="footprint-overlay">
+      <div className="footprint-header">
+        <span>Footprint</span>
+        <span>Buy x Sell</span>
+        <span>Delta</span>
+      </div>
+      <div className="footprint-body">
+        {rows.map((row) => (
+          <div key={row.ts} className="footprint-row">
+            <div className="footprint-time">{formatLocalTickTime(Math.floor(new Date(row.ts).getTime() / 1000))}</div>
+            <div className="footprint-price-range">
+              <strong>{formatPrice(row.close)}</strong>
+              <small>{formatPrice(row.low)} - {formatPrice(row.high)}</small>
+            </div>
+            <div className="footprint-flow">
+              <span className="buy-volume">{formatPrice(row.buyVolume)}</span>
+              <span className="divider">x</span>
+              <span className="sell-volume">{formatPrice(row.sellVolume)}</span>
+            </div>
+            <div className={`footprint-delta ${row.delta >= 0 ? 'positive' : 'negative'}`}>
+              {row.delta >= 0 ? '+' : ''}{formatPrice(row.delta)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function CandlesChart({ data, chartType = 'candles' }) {
+  return <ChartCanvas data={data} chartType={chartType} />;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import CandlesChart from './components/CandlesChart';
 
 function formatUtcTimestamp(ts) {
   if (!ts) return 'Waiting for data';
@@ -28,10 +29,13 @@ function formatPrice(value) {
     maximumFractionDigits: 2,
   }).format(number);
 }
-import CandlesChart from './components/CandlesChart';
 
 const API_BASE = '/api';
 const TIMEFRAMES = ['5m', '30m', '4h', '1d'];
+const CHART_TYPES = [
+  { value: 'candles', label: 'Candles' },
+  { value: 'footprint', label: 'Footprint' },
+];
 
 const STRATEGY_OPTIONS = [
   { name: 'Momentum Breakout', description: 'Follow strong directional continuation after range expansion.' },
@@ -45,6 +49,7 @@ export default function App() {
   const [candles, setCandles] = useState([]);
   const [symbol, setSymbol] = useState('BTCUSDC');
   const [timeframe, setTimeframe] = useState('5m');
+  const [chartType, setChartType] = useState('candles');
   const [selectedStrategy, setSelectedStrategy] = useState(STRATEGY_OPTIONS[0].name);
 
   useEffect(() => {
@@ -91,8 +96,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand-group">
           <div className="brand">Trading Platform</div>
-          <div className="topbar-control">
-            <span className="topbar-label">Instrument</span>
+          <div className="topbar-control compact-control">
             <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
               {activeInstruments.map((instrument) => (
                 <option key={instrument.id} value={instrument.symbol}>{instrument.symbol}</option>
@@ -113,6 +117,20 @@ export default function App() {
               ))}
             </div>
           </div>
+          <div className="topbar-control timeframe-control">
+            <span className="topbar-label">Chart</span>
+            <div className="timeframes">
+              {CHART_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  className={type.value === chartType ? 'active' : ''}
+                  onClick={() => setChartType(type.value)}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="status-pill">API {health ? 'connected' : 'loading'}</div>
@@ -121,7 +139,7 @@ export default function App() {
       <main className="workspace">
         <section className="chart-panel">
           <div className="chart-frame">
-            <CandlesChart data={candles} />
+            <CandlesChart data={candles} chartType={chartType} />
           </div>
         </section>
 
@@ -148,17 +166,19 @@ export default function App() {
             <ul className="sidebar-list">
               <li>Preferred symbol: {symbol}</li>
               <li>Working timeframe: {timeframe}</li>
+              <li>Chart type: {chartType}</li>
               <li>Last close: {formatPrice(latest?.close)}</li>
               <li>Latest candle time: {formatUtcTimestamp(latest?.ts)}</li>
             </ul>
           </div>
 
           <div className="sidebar-card">
-            <h2>Suggestions</h2>
+            <h2>Flow snapshot</h2>
             <ul className="sidebar-list">
-              <li>Add volume bars under the chart.</li>
-              <li>Add EMA overlays for trend context.</li>
-              <li>Add strategy signal markers on candles.</li>
+              <li>Buy volume: {formatPrice(latest?.buy_volume)}</li>
+              <li>Sell volume: {formatPrice(latest?.sell_volume)}</li>
+              <li>Delta: {formatPrice((Number(latest?.buy_volume || 0) - Number(latest?.sell_volume || 0)).toFixed(2))}</li>
+              <li>Trades: {latest?.trade_count ?? 'Waiting for data'}</li>
             </ul>
           </div>
         </aside>
