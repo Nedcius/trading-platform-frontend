@@ -59,7 +59,7 @@ export default function App() {
     };
 
     loadCandles();
-    const interval = window.setInterval(loadCandles, 5000);
+    const interval = window.setInterval(loadCandles, 1000);
 
     return () => {
       cancelled = true;

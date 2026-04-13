@@ -1,10 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
 
+function toChartCandle(candle) {
+  return {
+    time: Math.floor(new Date(candle.ts).getTime() / 1000),
+    open: Number(candle.open),
+    high: Number(candle.high),
+    low: Number(candle.low),
+    close: Number(candle.close),
+  };
+}
+
 export default function CandlesChart({ data }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
+  const initializedRef = useRef(false);
+  const lastTimeRef = useRef(null);
+  const visibleRangeRef = useRef(null);
+  const isUserInteractingRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -34,6 +48,16 @@ export default function CandlesChart({ data }) {
       wickDownColor: '#ef4444',
     });
 
+    const timeScale = chart.timeScale();
+    timeScale.subscribeVisibleLogicalRangeChange((range) => {
+      visibleRangeRef.current = range;
+      if (!range) return;
+
+      const latestIndex = Math.max(data.length - 1, 0);
+      const distanceFromRight = latestIndex - range.to;
+      isUserInteractingRef.current = distanceFromRight > 3;
+    });
+
     chartRef.current = chart;
     seriesRef.current = series;
 
@@ -54,18 +78,39 @@ export default function CandlesChart({ data }) {
   }, []);
 
   useEffect(() => {
-    if (!seriesRef.current) return;
+    if (!seriesRef.current || !chartRef.current || !data.length) return;
 
-    const chartData = data.map((c) => ({
-      time: Math.floor(new Date(c.ts).getTime() / 1000),
-      open: Number(c.open),
-      high: Number(c.high),
-      low: Number(c.low),
-      close: Number(c.close),
-    }));
+    const chartData = data.map(toChartCandle);
+    const latest = chartData[chartData.length - 1];
+    const previousLastTime = lastTimeRef.current;
 
-    seriesRef.current.setData(chartData);
-    chartRef.current?.timeScale().fitContent();
+    if (!initializedRef.current) {
+      seriesRef.current.setData(chartData);
+      chartRef.current.timeScale().fitContent();
+      initializedRef.current = true;
+      lastTimeRef.current = latest.time;
+      return;
+    }
+
+    if (previousLastTime === latest.time) {
+      seriesRef.current.update(latest);
+    } else if (previousLastTime && latest.time > previousLastTime) {
+      const previous = chartData[chartData.length - 2];
+      if (previous) {
+        seriesRef.current.update(previous);
+      }
+      seriesRef.current.update(latest);
+    } else {
+      seriesRef.current.setData(chartData);
+    }
+
+    lastTimeRef.current = latest.time;
+
+    if (!isUserInteractingRef.current) {
+      chartRef.current.timeScale().scrollToRealTime();
+    } else if (visibleRangeRef.current) {
+      chartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+    }
   }, [data]);
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
