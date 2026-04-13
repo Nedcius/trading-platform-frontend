@@ -24,10 +24,30 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE}/candles/${timeframe}?symbol=${symbol}`)
-      .then((r) => r.json())
-      .then(setCandles)
-      .catch(() => setCandles([]));
+    let cancelled = false;
+
+    const loadCandles = () => {
+      fetch(`${API_BASE}/candles/${timeframe}?symbol=${symbol}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!cancelled) {
+            setCandles(data);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setCandles([]);
+          }
+        });
+    };
+
+    loadCandles();
+    const interval = window.setInterval(loadCandles, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [symbol, timeframe]);
 
   const latest = candles.length ? candles[candles.length - 1] : null;
