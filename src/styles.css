@@ -1,56 +1,71 @@
-body {
+html, body, #root {
   margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
   font-family: Inter, Arial, sans-serif;
   background: #0b1220;
   color: #e2e8f0;
+  overflow: hidden;
 }
 
-.app {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+* {
+  box-sizing: border-box;
 }
 
-.header {
+button,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  height: 100vh;
   display: flex;
+  flex-direction: column;
+  background: #0b1220;
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 16px;
-  margin-bottom: 24px;
-}
-
-.health {
+  padding: 0 16px;
+  border-bottom: 1px solid #1f2937;
   background: #111827;
-  border: 1px solid #1f2937;
-  padding: 12px 16px;
-  border-radius: 12px;
+  flex-shrink: 0;
 }
 
-.card {
-  background: #111827;
-  border: 1px solid #1f2937;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.toolbar {
+.brand-group {
   display: flex;
-  gap: 24px;
-  align-items: end;
-}
-
-.toolbar label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
   gap: 16px;
+  min-width: 0;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.topbar-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-label {
+  color: #94a3b8;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.timeframe-control {
+  min-width: 0;
 }
 
 .timeframes {
@@ -58,7 +73,9 @@ body {
   gap: 8px;
 }
 
-button, select {
+.status-pill,
+button,
+select {
   background: #1f2937;
   color: #e5e7eb;
   border: 1px solid #374151;
@@ -66,11 +83,145 @@ button, select {
   padding: 8px 12px;
 }
 
-button.active {
+button {
+  cursor: pointer;
+}
+
+button.active,
+.strategy-button.selected {
   background: #2563eb;
   border-color: #2563eb;
 }
 
-.chart-card h2 {
-  margin-top: 0;
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.chart-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1f2937;
+}
+
+.market-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #1f2937;
+  background: #0f172a;
+  flex-shrink: 0;
+}
+
+.market-main h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.market-main p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+}
+
+.market-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 520px;
+}
+
+.stat-card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.stat-card span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.stat-card strong {
+  font-size: 18px;
+}
+
+.chart-frame {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 12px 12px;
+}
+
+.right-sidebar {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: #0f172a;
+}
+
+.sidebar-card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.sidebar-card h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.strategy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.strategy-button {
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+}
+
+.strategy-button span,
+.strategy-button small {
+  display: block;
+}
+
+.strategy-button small,
+.sidebar-copy,
+.sidebar-list {
+  color: #94a3b8;
+}
+
+.strategy-button small {
+  margin-top: 6px;
+}
+
+.sidebar-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.sidebar-list li + li {
+  margin-top: 8px;
+}
+
+@media (max-width: 1200px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .market-stats {
+    min-width: 0;
+  }
 }
