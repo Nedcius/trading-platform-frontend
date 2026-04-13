@@ -7,4 +7,4 @@ resources:
 images:
 - name: ghcr.io/nedcius/trading-platform-frontend
   newName: ghcr.io/nedcius/trading-platform-frontend
-  newTag: sha-e4d489e
+  newTag: sha-6039a0a
