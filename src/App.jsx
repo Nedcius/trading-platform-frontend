@@ -1,4 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
+
+function formatUtcTimestamp(ts) {
+  if (!ts) return 'Waiting for data';
+
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return ts;
+
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
 import CandlesChart from './components/CandlesChart';
 
 const API_BASE = '/api';
@@ -120,7 +137,7 @@ export default function App() {
               <li>Preferred symbol: {symbol}</li>
               <li>Working timeframe: {timeframe}</li>
               <li>Last close: {latest?.close ?? 'Waiting for data'}</li>
-              <li>Latest candle time: {latest?.ts ?? 'Waiting for data'}</li>
+              <li>Latest candle time: {formatUtcTimestamp(latest?.ts)}</li>
             </ul>
           </div>
 

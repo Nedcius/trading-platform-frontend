@@ -19,7 +19,7 @@ export default function CandlesChart({ data }) {
         horzLines: { color: '#1f2937' },
       },
       width: containerRef.current.clientWidth,
-      height: 500,
+      height: containerRef.current.clientHeight || 500,
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
@@ -38,7 +38,11 @@ export default function CandlesChart({ data }) {
     seriesRef.current = series;
 
     const handleResize = () => {
-      chart.applyOptions({ width: containerRef.current.clientWidth });
+      if (!containerRef.current) return;
+      chart.applyOptions({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight || 500,
+      });
     };
 
     window.addEventListener('resize', handleResize);
@@ -64,5 +68,5 @@ export default function CandlesChart({ data }) {
     chartRef.current?.timeScale().fitContent();
   }, [data]);
 
-  return <div ref={containerRef} style={{ width: '100%', minHeight: 500 }} />;
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 }
