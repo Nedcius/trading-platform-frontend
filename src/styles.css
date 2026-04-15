@@ -130,12 +130,13 @@ button.active,
 
 .primary-chart-area {
   min-height: 0;
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
 
 .chart-stack.footprint-mode .primary-chart-area {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 12px;
 }
 
@@ -143,6 +144,19 @@ button.active,
 .delta-chart-canvas,
 .footprint-pane {
   min-height: 0;
+  min-width: 0;
+}
+
+.main-chart-canvas {
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.delta-chart-canvas {
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .footprint-pane {
@@ -284,7 +298,7 @@ button.active,
 
 @media (max-width: 1400px) {
   .chart-stack.footprint-mode .primary-chart-area {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   }
 }
 
