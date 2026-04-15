@@ -121,121 +121,124 @@ button.active,
 }
 
 .chart-stack {
-  position: relative;
   height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) 140px;
   gap: 8px;
 }
 
-.primary-chart-area {
+.primary-chart-area,
+.main-chart-canvas,
+.delta-chart-canvas,
+.footprint-chart {
   min-height: 0;
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.chart-stack.footprint-mode .primary-chart-area {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  gap: 12px;
 }
 
 .main-chart-canvas,
 .delta-chart-canvas,
-.footprint-pane {
-  min-height: 0;
-  min-width: 0;
-}
-
-.main-chart-canvas {
+.footprint-chart {
   border: 1px solid #1f2937;
   border-radius: 12px;
   overflow: hidden;
 }
 
-.delta-chart-canvas {
-  border: 1px solid #1f2937;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.footprint-pane {
-  overflow: auto;
-  border: 1px solid #1f2937;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-}
-
-.footprint-header,
-.footprint-row {
-  display: grid;
-  grid-template-columns: 56px 1fr 1fr 90px;
-  gap: 10px;
-  align-items: center;
-}
-
-.footprint-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+.footprint-chart {
+  background: #111827;
   padding: 12px;
-  background: #0f172a;
-  border-bottom: 1px solid #1f2937;
-  color: #94a3b8;
+}
+
+.footprint-chart-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.footprint-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.footprint-candle {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footprint-wick {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #64748b;
+  opacity: 0.7;
+}
+
+.footprint-body-box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 10px 8px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.footprint-candle.bullish .footprint-body-box {
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.35);
+}
+
+.footprint-candle.bearish .footprint-body-box {
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.35);
+}
+
+.footprint-level {
+  display: grid;
+  grid-template-columns: 1fr 18px 1fr;
+  gap: 4px;
+  padding: 3px 0;
   font-size: 12px;
-  text-transform: uppercase;
-}
-
-.footprint-body {
-  padding: 8px 12px 12px;
-}
-
-.footprint-row {
-  padding: 10px 0;
-  border-bottom: 1px solid #1f2937;
-}
-
-.footprint-row:last-child {
-  border-bottom: none;
-}
-
-.footprint-time,
-.footprint-price-range small,
-.divider {
-  color: #94a3b8;
-}
-
-.footprint-price-range strong,
-.footprint-flow,
-.footprint-delta {
-  display: block;
-}
-
-.footprint-price-range small {
-  display: block;
-  margin-top: 4px;
-}
-
-.footprint-flow {
   font-variant-numeric: tabular-nums;
 }
 
-.buy-volume {
+.footprint-left {
   color: #22c55e;
+  text-align: right;
 }
 
-.sell-volume {
+.footprint-mid {
+  color: #94a3b8;
+  text-align: center;
+}
+
+.footprint-right {
   color: #ef4444;
+  text-align: left;
 }
 
-.footprint-delta.positive {
-  color: #22c55e;
+.footprint-column-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
-.footprint-delta.negative {
-  color: #ef4444;
+.footprint-column-meta strong {
+  font-size: 12px;
+}
+
+.footprint-column-meta small {
+  color: #94a3b8;
+  font-size: 11px;
 }
 
 .right-sidebar {
@@ -296,18 +299,12 @@ button.active,
   margin-top: 8px;
 }
 
-@media (max-width: 1400px) {
-  .chart-stack.footprint-mode .primary-chart-area {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
-  }
-}
-
 @media (max-width: 1200px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr) 280px;
   }
 
-  .chart-stack.footprint-mode .primary-chart-area {
-    grid-template-columns: minmax(0, 1fr) 280px;
+  .footprint-chart-grid {
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   }
 }

@@ -40,10 +40,16 @@ function toDeltaBars(data) {
 }
 
 function toFootprintRows(data) {
-  return data.slice(-14).reverse().map((candle) => {
+  return data.slice(-18).map((candle) => {
     const buyVolume = Number(candle.buy_volume || 0);
     const sellVolume = Number(candle.sell_volume || 0);
     const delta = buyVolume - sellVolume;
+    const totalVolume = Number(candle.volume || 0);
+    const footprintLevels = [
+      { label: 'H', left: buyVolume * 0.18, right: sellVolume * 0.18 },
+      { label: 'M', left: buyVolume * 0.32, right: sellVolume * 0.32 },
+      { label: 'L', left: buyVolume * 0.5, right: sellVolume * 0.5 },
+    ];
 
     return {
       ts: candle.ts,
@@ -54,49 +60,50 @@ function toFootprintRows(data) {
       buyVolume,
       sellVolume,
       delta,
-      totalVolume: Number(candle.volume || 0),
+      totalVolume,
       tradeCount: Number(candle.trade_count || 0),
+      footprintLevels,
     };
   });
 }
 
-function FootprintPane({ data }) {
+function FootprintChart({ data }) {
   const rows = useMemo(() => toFootprintRows(data), [data]);
 
   return (
-    <div className="footprint-pane">
-      <div className="footprint-header">
-        <span>Time</span>
-        <span>Price</span>
-        <span>Buy x Sell</span>
-        <span>Delta</span>
-      </div>
-      <div className="footprint-body">
-        {rows.map((row) => (
-          <div key={row.ts} className="footprint-row">
-            <div className="footprint-time">{formatLocalTickTime(Math.floor(new Date(row.ts).getTime() / 1000))}</div>
-            <div className="footprint-price-range">
-              <strong>{formatPrice(row.close)}</strong>
-              <small>{formatPrice(row.low)} - {formatPrice(row.high)}</small>
+    <div className="footprint-chart">
+      <div className="footprint-chart-grid">
+        {rows.map((row) => {
+          const bullish = row.close >= row.open;
+          return (
+            <div key={row.ts} className="footprint-column">
+              <div className={`footprint-candle ${bullish ? 'bullish' : 'bearish'}`}>
+                <div className="footprint-wick" />
+                <div className="footprint-body-box">
+                  {row.footprintLevels.map((level) => (
+                    <div key={level.label} className="footprint-level">
+                      <span className="footprint-left">{Math.round(level.left)}</span>
+                      <span className="footprint-mid">{level.label}</span>
+                      <span className="footprint-right">{Math.round(level.right)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="footprint-column-meta">
+                <strong>{formatPrice(row.close)}</strong>
+                <small>{formatLocalTickTime(Math.floor(new Date(row.ts).getTime() / 1000))}</small>
+              </div>
             </div>
-            <div className="footprint-flow">
-              <span className="buy-volume">{formatPrice(row.buyVolume)}</span>
-              <span className="divider">x</span>
-              <span className="sell-volume">{formatPrice(row.sellVolume)}</span>
-            </div>
-            <div className={`footprint-delta ${row.delta >= 0 ? 'positive' : 'negative'}`}>
-              {row.delta >= 0 ? '+' : ''}{formatPrice(row.delta)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
 export default function CandlesChart({ data, chartType = 'candles' }) {
-  const mainContainerRef = useRef(null);
   const deltaContainerRef = useRef(null);
+  const mainContainerRef = useRef(null);
   const mainChartRef = useRef(null);
   const deltaChartRef = useRef(null);
   const mainSeriesRef = useRef(null);
@@ -112,6 +119,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
   }, [data]);
 
   useEffect(() => {
+    if (chartType !== 'candles') return;
     if (!mainContainerRef.current || !deltaContainerRef.current) return;
 
     const timeFormatter = (logical) => {
@@ -185,9 +193,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
     const syncRange = (range) => {
       visibleRangeRef.current = range;
       if (!range) return;
-
       deltaChart.timeScale().setVisibleLogicalRange(range);
-
       const latestIndex = Math.max(dataRef.current.length - 1, 0);
       const distanceFromRight = latestIndex - range.to;
       isUserInteractingRef.current = distanceFromRight > 3;
@@ -218,60 +224,114 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       window.removeEventListener('resize', handleResize);
       mainChart.remove();
       deltaChart.remove();
+      mainChartRef.current = null;
+      deltaChartRef.current = null;
+      mainSeriesRef.current = null;
+      deltaSeriesRef.current = null;
+      initializedRef.current = false;
+      lastLogicalTimeRef.current = null;
     };
-  }, []);
+  }, [chartType]);
 
   useEffect(() => {
-    if (!mainSeriesRef.current || !deltaSeriesRef.current || !mainChartRef.current || !deltaChartRef.current || !data.length) {
-      return;
-    }
+    if (!deltaContainerRef.current || !data.length) return;
 
-    const candleData = data.map(toChartCandle);
-    const deltaBars = toDeltaBars(data);
-    const latest = candleData[candleData.length - 1];
-    const previousLastTime = lastLogicalTimeRef.current;
+    if (chartType === 'candles') {
+      if (!mainSeriesRef.current || !deltaSeriesRef.current || !mainChartRef.current || !deltaChartRef.current) {
+        return;
+      }
 
-    if (!initializedRef.current) {
-      mainSeriesRef.current.setData(candleData);
-      deltaSeriesRef.current.setData(deltaBars);
-      mainChartRef.current.timeScale().fitContent();
-      deltaChartRef.current.timeScale().fitContent();
-      initializedRef.current = true;
+      const candleData = data.map(toChartCandle);
+      const deltaBars = toDeltaBars(data);
+      const latest = candleData[candleData.length - 1];
+      const previousLastTime = lastLogicalTimeRef.current;
+
+      if (!initializedRef.current) {
+        mainSeriesRef.current.setData(candleData);
+        deltaSeriesRef.current.setData(deltaBars);
+        mainChartRef.current.timeScale().fitContent();
+        deltaChartRef.current.timeScale().fitContent();
+        initializedRef.current = true;
+        lastLogicalTimeRef.current = latest.time;
+        return;
+      }
+
+      if (previousLastTime === latest.time) {
+        mainSeriesRef.current.update(latest);
+        deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
+      } else if (previousLastTime !== null && latest.time > previousLastTime) {
+        const previousCandle = candleData[candleData.length - 2];
+        const previousDelta = deltaBars[deltaBars.length - 2];
+        if (previousCandle) mainSeriesRef.current.update(previousCandle);
+        if (previousDelta) deltaSeriesRef.current.update(previousDelta);
+        mainSeriesRef.current.update(latest);
+        deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
+      } else {
+        mainSeriesRef.current.setData(candleData);
+        deltaSeriesRef.current.setData(deltaBars);
+      }
+
       lastLogicalTimeRef.current = latest.time;
+
+      if (!isUserInteractingRef.current) {
+        mainChartRef.current.timeScale().scrollToRealTime();
+        deltaChartRef.current.timeScale().scrollToRealTime();
+      } else if (visibleRangeRef.current) {
+        mainChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+        deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+      }
       return;
     }
 
-    if (previousLastTime === latest.time) {
-      mainSeriesRef.current.update(latest);
-      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
-    } else if (previousLastTime !== null && latest.time > previousLastTime) {
-      const previousCandle = candleData[candleData.length - 2];
-      const previousDelta = deltaBars[deltaBars.length - 2];
-      if (previousCandle) mainSeriesRef.current.update(previousCandle);
-      if (previousDelta) deltaSeriesRef.current.update(previousDelta);
-      mainSeriesRef.current.update(latest);
-      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
-    } else {
-      mainSeriesRef.current.setData(candleData);
-      deltaSeriesRef.current.setData(deltaBars);
+    if (!deltaChartRef.current || !deltaSeriesRef.current) {
+      const timeFormatter = (logical) => {
+        const item = dataRef.current?.[logical];
+        if (!item?.ts) return '';
+        return formatLocalTickTime(Math.floor(new Date(item.ts).getTime() / 1000));
+      };
+
+      const deltaChart = createChart(deltaContainerRef.current, {
+        layout: {
+          background: { type: ColorType.Solid, color: '#0f172a' },
+          textColor: '#94a3b8',
+        },
+        grid: {
+          vertLines: { color: '#1f2937' },
+          horzLines: { color: '#1f2937' },
+        },
+        width: deltaContainerRef.current.clientWidth,
+        height: deltaContainerRef.current.clientHeight || 140,
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
+          tickMarkFormatter: timeFormatter,
+        },
+      });
+
+      const deltaSeries = deltaChart.addHistogramSeries({
+        priceFormat: {
+          type: 'volume',
+        },
+        base: 0,
+      });
+
+      deltaChartRef.current = deltaChart;
+      deltaSeriesRef.current = deltaSeries;
     }
 
-    lastLogicalTimeRef.current = latest.time;
-
-    if (!isUserInteractingRef.current) {
-      mainChartRef.current.timeScale().scrollToRealTime();
-      deltaChartRef.current.timeScale().scrollToRealTime();
-    } else if (visibleRangeRef.current) {
-      mainChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
-      deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
-    }
-  }, [data]);
+    const deltaBars = toDeltaBars(data);
+    deltaSeriesRef.current.setData(deltaBars);
+    deltaChartRef.current.timeScale().fitContent();
+  }, [data, chartType]);
 
   return (
     <div className={`chart-stack ${chartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
       <div className="primary-chart-area">
-        <div ref={mainContainerRef} className="main-chart-canvas" />
-        {chartType === 'footprint' && <FootprintPane data={data} />}
+        {chartType === 'candles' ? (
+          <div ref={mainContainerRef} className="main-chart-canvas" />
+        ) : (
+          <FootprintChart data={data} />
+        )}
       </div>
       <div ref={deltaContainerRef} className="delta-chart-canvas" />
     </div>
