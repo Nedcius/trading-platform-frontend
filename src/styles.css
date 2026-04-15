@@ -128,17 +128,24 @@ button.active,
   gap: 8px;
 }
 
+.primary-chart-area {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chart-stack.footprint-mode .primary-chart-area {
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 12px;
+}
+
 .main-chart-canvas,
-.delta-chart-canvas {
+.delta-chart-canvas,
+.footprint-pane {
   min-height: 0;
 }
 
-.footprint-overlay {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 360px;
-  max-height: calc(100% - 164px);
+.footprint-pane {
   overflow: auto;
   border: 1px solid #1f2937;
   border-radius: 12px;
@@ -276,8 +283,8 @@ button.active,
 }
 
 @media (max-width: 1400px) {
-  .footprint-overlay {
-    width: 320px;
+  .chart-stack.footprint-mode .primary-chart-area {
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 }
 
@@ -286,7 +293,7 @@ button.active,
     grid-template-columns: minmax(0, 1fr) 280px;
   }
 
-  .footprint-overlay {
-    width: 280px;
+  .chart-stack.footprint-mode .primary-chart-area {
+    grid-template-columns: minmax(0, 1fr) 280px;
   }
 }

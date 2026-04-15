@@ -16,23 +16,25 @@ function formatLocalTickTime(timestamp) {
   }).format(new Date(timestamp * 1000));
 }
 
-function toChartCandle(candle) {
+function toChartCandle(candle, index) {
   return {
-    time: Math.floor(new Date(candle.ts).getTime() / 1000),
+    time: index,
     open: Number(candle.open),
     high: Number(candle.high),
     low: Number(candle.low),
     close: Number(candle.close),
+    ts: candle.ts,
   };
 }
 
 function toDeltaBars(data) {
-  return data.map((candle) => {
+  return data.map((candle, index) => {
     const delta = Number(candle.buy_volume || 0) - Number(candle.sell_volume || 0);
     return {
-      time: Math.floor(new Date(candle.ts).getTime() / 1000),
+      time: index,
       value: delta,
       color: delta >= 0 ? '#22c55e' : '#ef4444',
+      ts: candle.ts,
     };
   });
 }
@@ -58,7 +60,41 @@ function toFootprintRows(data) {
   });
 }
 
-function ChartCanvas({ data, chartType }) {
+function FootprintPane({ data }) {
+  const rows = useMemo(() => toFootprintRows(data), [data]);
+
+  return (
+    <div className="footprint-pane">
+      <div className="footprint-header">
+        <span>Time</span>
+        <span>Price</span>
+        <span>Buy x Sell</span>
+        <span>Delta</span>
+      </div>
+      <div className="footprint-body">
+        {rows.map((row) => (
+          <div key={row.ts} className="footprint-row">
+            <div className="footprint-time">{formatLocalTickTime(Math.floor(new Date(row.ts).getTime() / 1000))}</div>
+            <div className="footprint-price-range">
+              <strong>{formatPrice(row.close)}</strong>
+              <small>{formatPrice(row.low)} - {formatPrice(row.high)}</small>
+            </div>
+            <div className="footprint-flow">
+              <span className="buy-volume">{formatPrice(row.buyVolume)}</span>
+              <span className="divider">x</span>
+              <span className="sell-volume">{formatPrice(row.sellVolume)}</span>
+            </div>
+            <div className={`footprint-delta ${row.delta >= 0 ? 'positive' : 'negative'}`}>
+              {row.delta >= 0 ? '+' : ''}{formatPrice(row.delta)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function CandlesChart({ data, chartType = 'candles' }) {
   const mainContainerRef = useRef(null);
   const deltaContainerRef = useRef(null);
   const mainChartRef = useRef(null);
@@ -66,12 +102,23 @@ function ChartCanvas({ data, chartType }) {
   const mainSeriesRef = useRef(null);
   const deltaSeriesRef = useRef(null);
   const initializedRef = useRef(false);
-  const lastTimeRef = useRef(null);
+  const lastLogicalTimeRef = useRef(null);
   const visibleRangeRef = useRef(null);
   const isUserInteractingRef = useRef(false);
+  const dataRef = useRef(data);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   useEffect(() => {
     if (!mainContainerRef.current || !deltaContainerRef.current) return;
+
+    const timeFormatter = (logical) => {
+      const item = dataRef.current?.[logical];
+      if (!item?.ts) return '';
+      return formatLocalTickTime(Math.floor(new Date(item.ts).getTime() / 1000));
+    };
 
     const mainChart = createChart(mainContainerRef.current, {
       layout: {
@@ -87,10 +134,10 @@ function ChartCanvas({ data, chartType }) {
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: timeFormatter,
       },
       localization: {
         priceFormatter: formatPrice,
-        timeFormatter: formatLocalTickTime,
       },
     });
 
@@ -108,12 +155,10 @@ function ChartCanvas({ data, chartType }) {
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: timeFormatter,
       },
       rightPriceScale: {
         borderColor: '#1f2937',
-      },
-      localization: {
-        timeFormatter: formatLocalTickTime,
       },
     });
 
@@ -143,7 +188,7 @@ function ChartCanvas({ data, chartType }) {
 
       deltaChart.timeScale().setVisibleLogicalRange(range);
 
-      const latestIndex = Math.max(data.length - 1, 0);
+      const latestIndex = Math.max(dataRef.current.length - 1, 0);
       const distanceFromRight = latestIndex - range.to;
       isUserInteractingRef.current = distanceFromRight > 3;
     };
@@ -184,7 +229,7 @@ function ChartCanvas({ data, chartType }) {
     const candleData = data.map(toChartCandle);
     const deltaBars = toDeltaBars(data);
     const latest = candleData[candleData.length - 1];
-    const previousLastTime = lastTimeRef.current;
+    const previousLastTime = lastLogicalTimeRef.current;
 
     if (!initializedRef.current) {
       mainSeriesRef.current.setData(candleData);
@@ -192,14 +237,14 @@ function ChartCanvas({ data, chartType }) {
       mainChartRef.current.timeScale().fitContent();
       deltaChartRef.current.timeScale().fitContent();
       initializedRef.current = true;
-      lastTimeRef.current = latest.time;
+      lastLogicalTimeRef.current = latest.time;
       return;
     }
 
     if (previousLastTime === latest.time) {
       mainSeriesRef.current.update(latest);
       deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
-    } else if (previousLastTime && latest.time > previousLastTime) {
+    } else if (previousLastTime !== null && latest.time > previousLastTime) {
       const previousCandle = candleData[candleData.length - 2];
       const previousDelta = deltaBars[deltaBars.length - 2];
       if (previousCandle) mainSeriesRef.current.update(previousCandle);
@@ -211,7 +256,7 @@ function ChartCanvas({ data, chartType }) {
       deltaSeriesRef.current.setData(deltaBars);
     }
 
-    lastTimeRef.current = latest.time;
+    lastLogicalTimeRef.current = latest.time;
 
     if (!isUserInteractingRef.current) {
       mainChartRef.current.timeScale().scrollToRealTime();
@@ -223,47 +268,12 @@ function ChartCanvas({ data, chartType }) {
   }, [data]);
 
   return (
-    <div className="chart-stack">
-      <div ref={mainContainerRef} className="main-chart-canvas" />
+    <div className={`chart-stack ${chartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
+      <div className="primary-chart-area">
+        <div ref={mainContainerRef} className="main-chart-canvas" />
+        {chartType === 'footprint' && <FootprintPane data={data} />}
+      </div>
       <div ref={deltaContainerRef} className="delta-chart-canvas" />
-      {chartType === 'footprint' && <FootprintOverlay data={data} />}
     </div>
   );
-}
-
-function FootprintOverlay({ data }) {
-  const rows = useMemo(() => toFootprintRows(data), [data]);
-
-  return (
-    <div className="footprint-overlay">
-      <div className="footprint-header">
-        <span>Footprint</span>
-        <span>Buy x Sell</span>
-        <span>Delta</span>
-      </div>
-      <div className="footprint-body">
-        {rows.map((row) => (
-          <div key={row.ts} className="footprint-row">
-            <div className="footprint-time">{formatLocalTickTime(Math.floor(new Date(row.ts).getTime() / 1000))}</div>
-            <div className="footprint-price-range">
-              <strong>{formatPrice(row.close)}</strong>
-              <small>{formatPrice(row.low)} - {formatPrice(row.high)}</small>
-            </div>
-            <div className="footprint-flow">
-              <span className="buy-volume">{formatPrice(row.buyVolume)}</span>
-              <span className="divider">x</span>
-              <span className="sell-volume">{formatPrice(row.sellVolume)}</span>
-            </div>
-            <div className={`footprint-delta ${row.delta >= 0 ? 'positive' : 'negative'}`}>
-              {row.delta >= 0 ? '+' : ''}{formatPrice(row.delta)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function CandlesChart({ data, chartType = 'candles' }) {
-  return <ChartCanvas data={data} chartType={chartType} />;
 }
