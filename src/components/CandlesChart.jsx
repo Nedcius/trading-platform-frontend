@@ -51,6 +51,8 @@ function toFootprintRows(data) {
       { label: 'L', left: buyVolume * 0.5, right: sellVolume * 0.5 },
     ];
 
+    const pointOfControlSide = buyVolume >= sellVolume ? 'buy' : 'sell';
+
     return {
       ts: candle.ts,
       open: Number(candle.open),
@@ -63,6 +65,7 @@ function toFootprintRows(data) {
       totalVolume,
       tradeCount: Number(candle.trade_count || 0),
       footprintLevels,
+      pointOfControlSide,
     };
   });
 }
@@ -82,9 +85,9 @@ function FootprintChart({ data }) {
                 <div className="footprint-body-box">
                   {row.footprintLevels.map((level) => (
                     <div key={level.label} className="footprint-level">
-                      <span className="footprint-left">{Math.round(level.left)}</span>
+                      <span className={`footprint-left ${row.pointOfControlSide === 'buy' ? 'point-of-control' : ''}`}>{Math.round(level.left)}</span>
                       <span className="footprint-mid">{level.label}</span>
-                      <span className="footprint-right">{Math.round(level.right)}</span>
+                      <span className={`footprint-right ${row.pointOfControlSide === 'sell' ? 'point-of-control' : ''}`}>{Math.round(level.right)}</span>
                     </div>
                   ))}
                 </div>

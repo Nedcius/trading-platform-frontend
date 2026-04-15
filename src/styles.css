@@ -225,6 +225,11 @@ button.active,
   text-align: left;
 }
 
+.point-of-control {
+  font-weight: 700;
+  text-shadow: 0 0 10px currentColor;
+}
+
 .footprint-column-meta {
   display: flex;
   flex-direction: column;
