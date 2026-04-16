@@ -139,7 +139,13 @@ export default function App() {
       <main className="workspace">
         <section className="chart-panel">
           <div className="chart-frame">
-            <CandlesChart data={candles} chartType={chartType} />
+            <CandlesChart
+              data={candles.map((candle) => ({
+                ...candle,
+                time: candle.time ?? Math.floor(new Date(candle.ts).getTime() / 1000),
+              }))}
+              chartType={chartType}
+            />
           </div>
         </section>
 
