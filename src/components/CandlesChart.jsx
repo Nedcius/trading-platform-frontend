@@ -137,12 +137,13 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
   ctx.textBaseline = 'middle';
 
   const timeScale = chart.timeScale();
+  const visibleRange = timeScale.getVisibleLogicalRange();
+  const visibleBars = visibleRange ? Math.max((visibleRange.to - visibleRange.from) + 1, 1) : Math.max(bars.length, 1);
+  const candleSpacing = Math.max(width / visibleBars, 6);
 
   for (const bar of bars) {
     const x = timeScale.logicalToCoordinate(bar.logicalTime);
     if (x == null) continue;
-
-    const candleSpacing = timeScale.options().barSpacing ?? 10;
     const columnWidth = Math.max(42, candleSpacing * 3.2);
     const left = x - columnWidth / 2;
     const right = x + columnWidth / 2;
@@ -283,7 +284,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-    const mainSeries = mainChart.addSeries('CandlestickSeries', {
+    const mainSeries = mainChart.addCandlestickSeries({
       upColor: BUY,
       downColor: SELL,
       borderVisible: false,
@@ -296,7 +297,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-    const deltaSeries = deltaChart.addSeries('HistogramSeries', {
+    const deltaSeries = deltaChart.addHistogramSeries({
       priceFormat: {
         type: 'volume',
       },
