@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ColorType, createChart } from 'lightweight-charts';
 
 const CHART_BG = '#111827';
@@ -206,6 +206,7 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
 }
 
 export default function CandlesChart({ data, chartType = 'candles' }) {
+  const [chartError, setChartError] = useState(null);
   const mainContainerRef = useRef(null);
   const overlayCanvasRef = useRef(null);
   const deltaContainerRef = useRef(null);
@@ -235,7 +236,8 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       return formatLocalTickTime(typeof ts === 'number' ? ts : Math.floor(new Date(ts).getTime() / 1000));
     };
 
-    const mainChart = createChart(mainContainerRef.current, {
+    try {
+      const mainChart = createChart(mainContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: CHART_BG },
         textColor: TEXT,
@@ -263,7 +265,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-    const deltaChart = createChart(deltaContainerRef.current, {
+      const deltaChart = createChart(deltaContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: DELTA_BG },
         textColor: '#94a3b8',
@@ -284,7 +286,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-    const mainSeries = mainChart.addCandlestickSeries({
+      const mainSeries = mainChart.addCandlestickSeries({
       upColor: BUY,
       downColor: SELL,
       borderVisible: false,
@@ -297,7 +299,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-    const deltaSeries = deltaChart.addHistogramSeries({
+      const deltaSeries = deltaChart.addHistogramSeries({
       priceFormat: {
         type: 'volume',
       },
@@ -316,14 +318,15 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       }
     };
 
-    mainChart.timeScale().subscribeVisibleLogicalRangeChange(syncRange);
+      mainChart.timeScale().subscribeVisibleLogicalRangeChange(syncRange);
 
-    mainChartRef.current = mainChart;
-    deltaChartRef.current = deltaChart;
-    mainSeriesRef.current = mainSeries;
-    deltaSeriesRef.current = deltaSeries;
+      mainChartRef.current = mainChart;
+      deltaChartRef.current = deltaChart;
+      mainSeriesRef.current = mainSeries;
+      deltaSeriesRef.current = deltaSeries;
+      setChartError(null);
 
-    const handleResize = () => {
+      const handleResize = () => {
       if (!mainContainerRef.current || !deltaContainerRef.current) return;
       mainChart.applyOptions({
         width: mainContainerRef.current.clientWidth,
@@ -338,19 +341,24 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       }
     };
 
-    window.addEventListener('resize', handleResize);
+      window.addEventListener('resize', handleResize);
 
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      mainChart.remove();
-      deltaChart.remove();
-      mainChartRef.current = null;
-      deltaChartRef.current = null;
-      mainSeriesRef.current = null;
-      deltaSeriesRef.current = null;
-      initializedRef.current = false;
-      lastLogicalTimeRef.current = null;
-    };
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        mainChart.remove();
+        deltaChart.remove();
+        mainChartRef.current = null;
+        deltaChartRef.current = null;
+        mainSeriesRef.current = null;
+        deltaSeriesRef.current = null;
+        initializedRef.current = false;
+        lastLogicalTimeRef.current = null;
+      };
+    } catch (error) {
+      console.error('Chart initialization failed', error);
+      setChartError(error instanceof Error ? error.message : 'Chart initialization failed');
+      return undefined;
+    }
   }, [chartType, footprintBars]);
 
   useEffect(() => {
@@ -408,6 +416,24 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       }
     }
   }, [data, chartType, footprintBars]);
+
+  if (chartError) {
+    return (
+      <div style={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#111827',
+        color: '#e5e7eb',
+        border: '1px solid #1f2937',
+        borderRadius: '12px',
+        padding: '16px',
+      }}>
+        Chart failed to load: {chartError}
+      </div>
+    );
+  }
 
   return (
     <div className={`chart-stack ${chartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
