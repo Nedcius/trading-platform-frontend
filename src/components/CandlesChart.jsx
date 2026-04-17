@@ -121,6 +121,12 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
   const dpr = window.devicePixelRatio || 1;
   const width = parent.clientWidth;
   const height = parent.clientHeight;
+  if (!width || !height) return;
+
+  const priceScaleApi = chart.priceScale('right');
+  const timeScale = chart.timeScale();
+  const visibleRange = timeScale.getVisibleLogicalRange();
+  if (!priceScaleApi || !visibleRange) return;
 
   canvas.width = Math.floor(width * dpr);
   canvas.height = Math.floor(height * dpr);
@@ -136,9 +142,7 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
   ctx.font = '11px Inter, Arial, sans-serif';
   ctx.textBaseline = 'middle';
 
-  const timeScale = chart.timeScale();
-  const visibleRange = timeScale.getVisibleLogicalRange();
-  const visibleBars = visibleRange ? Math.max((visibleRange.to - visibleRange.from) + 1, 1) : Math.max(bars.length, 1);
+  const visibleBars = Math.max((visibleRange.to - visibleRange.from) + 1, 1);
   const candleSpacing = Math.max(width / visibleBars, 6);
 
   for (const bar of bars) {
@@ -151,7 +155,7 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
     const visibleLevels = bar.levels
       .map((level) => ({
         ...level,
-        y: chart.priceScale('right').priceToCoordinate(level.price),
+        y: priceScaleApi.priceToCoordinate(level.price),
       }))
       .filter((level) => level.y != null)
       .sort((a, b) => a.price - b.price);
