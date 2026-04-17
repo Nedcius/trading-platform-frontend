@@ -28,22 +28,40 @@ select {
 }
 
 .topbar {
-  height: 64px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid #1f2937;
   background: #111827;
   flex-shrink: 0;
 }
 
+.topbar-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.topbar-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.topbar-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}
+
 .brand-group {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 16px;
-  min-width: 0;
+  min-width: max-content;
+  padding-right: 8px;
 }
 
 .brand {
@@ -95,6 +113,23 @@ button.active,
 .strategy-button.selected {
   background: #2563eb;
   border-color: #2563eb;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hamburger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  min-height: 42px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .workspace {
@@ -256,6 +291,10 @@ button.active,
   background: #0f172a;
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
 .sidebar-card {
   background: #111827;
   border: 1px solid #1f2937;
@@ -311,5 +350,70 @@ button.active,
 
   .footprint-chart-grid {
     grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .workspace {
+    display: block;
+    position: relative;
+  }
+
+  .chart-panel {
+    border-right: 0;
+    height: 100%;
+  }
+
+  .chart-frame {
+    padding: 8px;
+  }
+
+  .right-sidebar {
+    position: fixed;
+    top: 64px;
+    right: 0;
+    bottom: 0;
+    width: min(88vw, 340px);
+    max-width: 100%;
+    z-index: 30;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    border-left: 1px solid #1f2937;
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .right-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 64px 0 0 0;
+    background: rgba(2, 6, 23, 0.55);
+    border: 0;
+    padding: 0;
+    margin: 0;
+    z-index: 20;
+    border-radius: 0;
+  }
+
+  .status-pill {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) {
+  .hamburger-button {
+    display: none;
   }
 }

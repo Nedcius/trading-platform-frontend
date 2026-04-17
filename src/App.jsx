@@ -51,6 +51,7 @@ export default function App() {
   const [timeframe, setTimeframe] = useState('5m');
   const [chartType, setChartType] = useState('candles');
   const [selectedStrategy, setSelectedStrategy] = useState(STRATEGY_OPTIONS[0].name);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/health`).then((r) => r.json()).then(setHealth).catch(() => setHealth({ ok: 0 }));
@@ -91,52 +92,69 @@ export default function App() {
     [selectedStrategy]
   );
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [symbol, timeframe, chartType]);
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-group">
-          <div className="brand">Trading Platform</div>
-          <div className="topbar-control compact-control">
-            <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-              {activeInstruments.map((instrument) => (
-                <option key={instrument.id} value={instrument.symbol}>{instrument.symbol}</option>
-              ))}
-            </select>
-          </div>
-          <div className="topbar-control timeframe-control">
-            <span className="topbar-label">Candles</span>
-            <div className="timeframes">
-              {TIMEFRAMES.map((tf) => (
-                <button
-                  key={tf}
-                  className={tf === timeframe ? 'active' : ''}
-                  onClick={() => setTimeframe(tf)}
-                >
-                  {tf}
-                </button>
-              ))}
+        <div className="topbar-scroll">
+          <div className="brand-group">
+            <div className="brand">Trading Platform</div>
+            <div className="topbar-control compact-control">
+              <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+                {activeInstruments.map((instrument) => (
+                  <option key={instrument.id} value={instrument.symbol}>{instrument.symbol}</option>
+                ))}
+              </select>
             </div>
-          </div>
-          <div className="topbar-control timeframe-control">
-            <span className="topbar-label">Chart</span>
-            <div className="timeframes">
-              {CHART_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  className={type.value === chartType ? 'active' : ''}
-                  onClick={() => setChartType(type.value)}
-                >
-                  {type.label}
-                </button>
-              ))}
+            <div className="topbar-control timeframe-control">
+              <span className="topbar-label">Candles</span>
+              <div className="timeframes">
+                {TIMEFRAMES.map((tf) => (
+                  <button
+                    key={tf}
+                    className={tf === timeframe ? 'active' : ''}
+                    onClick={() => setTimeframe(tf)}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="topbar-control timeframe-control">
+              <span className="topbar-label">Chart</span>
+              <div className="timeframes">
+                {CHART_TYPES.map((type) => (
+                  <button
+                    key={type.value}
+                    className={type.value === chartType ? 'active' : ''}
+                    onClick={() => setChartType(type.value)}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="status-pill">API {health ? 'connected' : 'loading'}</div>
+        <div className="topbar-actions">
+          <div className="status-pill">API {health ? 'connected' : 'loading'}</div>
+          <button
+            type="button"
+            className={`hamburger-button ${sidebarOpen ? 'active' : ''}`}
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label="Toggle right sidebar"
+            aria-expanded={sidebarOpen}
+          >
+            ☰
+          </button>
+        </div>
       </header>
 
-      <main className="workspace">
+      <main className={`workspace ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <section className="chart-panel">
           <div className="chart-frame">
             <CandlesChart
@@ -149,7 +167,7 @@ export default function App() {
           </div>
         </section>
 
-        <aside className="right-sidebar">
+        <aside className={`right-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-card">
             <h2>Strategies</h2>
             <div className="strategy-list">
@@ -189,6 +207,8 @@ export default function App() {
           </div>
         </aside>
       </main>
+
+      {sidebarOpen && <button type="button" className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" />}
     </div>
   );
 }
