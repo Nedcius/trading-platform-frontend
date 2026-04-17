@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ColorType, createChart } from 'lightweight-charts';
+import { CandlestickSeries, ColorType, createChart, HistogramSeries } from 'lightweight-charts';
 
 const CHART_BG = '#111827';
 const GRID = '#1f2937';
@@ -286,25 +286,25 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-      const mainSeries = mainChart.addCandlestickSeries({
-      upColor: BUY,
-      downColor: SELL,
-      borderVisible: false,
-      wickUpColor: BUY,
-      wickDownColor: SELL,
-      priceFormat: {
-        type: 'price',
-        precision: 2,
-        minMove: 0.1,
-      },
-    });
+      const mainSeries = mainChart.addSeries(CandlestickSeries, {
+        upColor: BUY,
+        downColor: SELL,
+        borderVisible: false,
+        wickUpColor: BUY,
+        wickDownColor: SELL,
+        priceFormat: {
+          type: 'price',
+          precision: 2,
+          minMove: 0.1,
+        },
+      });
 
-      const deltaSeries = deltaChart.addHistogramSeries({
-      priceFormat: {
-        type: 'volume',
-      },
-      base: 0,
-    });
+      const deltaSeries = deltaChart.addSeries(HistogramSeries, {
+        priceFormat: {
+          type: 'volume',
+        },
+        base: 0,
+      });
 
     const syncRange = (range) => {
       visibleRangeRef.current = range;
