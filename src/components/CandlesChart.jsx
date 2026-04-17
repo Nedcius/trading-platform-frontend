@@ -211,6 +211,7 @@ function drawFootprintOverlay({ canvas, chart, bars }) {
 
 export default function CandlesChart({ data, chartType = 'candles' }) {
   const [chartError, setChartError] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
   const mainContainerRef = useRef(null);
   const overlayCanvasRef = useRef(null);
   const deltaContainerRef = useRef(null);
@@ -225,10 +226,17 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
   const dataRef = useRef(data);
 
   const footprintBars = useMemo(() => normalizeFootprintData(maybeBuildSyntheticLevels(data)), [data]);
+  const effectiveChartType = chartType === 'footprint' && isMobile ? 'candles' : chartType;
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!mainContainerRef.current || !deltaContainerRef.current) return;
@@ -317,7 +325,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       const latestIndex = Math.max(dataRef.current.length - 1, 0);
       const distanceFromRight = latestIndex - range.to;
       isUserInteractingRef.current = distanceFromRight > 3;
-      if (chartType === 'footprint') {
+      if (effectiveChartType === 'footprint') {
         drawFootprintOverlay({ canvas: overlayCanvasRef.current, chart: mainChart, bars: footprintBars });
       }
     };
@@ -340,7 +348,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
         width: deltaContainerRef.current.clientWidth,
         height: deltaContainerRef.current.clientHeight || 140,
       });
-      if (chartType === 'footprint') {
+      if (effectiveChartType === 'footprint') {
         drawFootprintOverlay({ canvas: overlayCanvasRef.current, chart: mainChart, bars: footprintBars });
       }
     };
@@ -363,7 +371,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       setChartError(error instanceof Error ? error.message : 'Chart initialization failed');
       return undefined;
     }
-  }, [chartType, footprintBars]);
+  }, [effectiveChartType, footprintBars]);
 
   useEffect(() => {
     if (!data.length || !mainChartRef.current || !mainSeriesRef.current || !deltaChartRef.current || !deltaSeriesRef.current) {
@@ -407,7 +415,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
     }
 
-    if (chartType === 'footprint') {
+    if (effectiveChartType === 'footprint') {
       drawFootprintOverlay({
         canvas: overlayCanvasRef.current,
         chart: mainChartRef.current,
@@ -419,7 +427,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
         ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
       }
     }
-  }, [data, chartType, footprintBars]);
+  }, [data, effectiveChartType, footprintBars]);
 
   if (chartError) {
     return (
@@ -440,7 +448,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
   }
 
   return (
-    <div className={`chart-stack ${chartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
+    <div className={`chart-stack ${effectiveChartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
       <div className="primary-chart-area">
         <div ref={mainContainerRef} className="main-chart-canvas" />
         <canvas
@@ -450,7 +458,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            opacity: chartType === 'footprint' ? 1 : 0,
+            opacity: effectiveChartType === 'footprint' ? 1 : 0,
           }}
         />
       </div>
