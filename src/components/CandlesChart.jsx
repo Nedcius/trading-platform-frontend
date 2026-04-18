@@ -227,6 +227,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
 
   const footprintBars = useMemo(() => normalizeFootprintData(maybeBuildSyntheticLevels(data)), [data]);
   const effectiveChartType = chartType === 'footprint' && isMobile ? 'candles' : chartType;
+  const showDeltaChart = !isMobile;
 
   useEffect(() => {
     dataRef.current = data;
@@ -239,7 +240,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
   }, []);
 
   useEffect(() => {
-    if (!mainContainerRef.current || !deltaContainerRef.current) return;
+    if (!mainContainerRef.current || (showDeltaChart && !deltaContainerRef.current)) return;
 
     const timeFormatter = (logical) => {
       const item = dataRef.current?.[logical];
@@ -277,26 +278,28 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       },
     });
 
-      const deltaChart = createChart(deltaContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: DELTA_BG },
-        textColor: '#94a3b8',
-      },
-      grid: {
-        vertLines: { color: GRID },
-        horzLines: { color: GRID },
-      },
-      width: deltaContainerRef.current.clientWidth,
-      height: deltaContainerRef.current.clientHeight || 140,
-      timeScale: {
-        timeVisible: true,
-        secondsVisible: false,
-        tickMarkFormatter: timeFormatter,
-      },
-      rightPriceScale: {
-        borderColor: GRID,
-      },
-    });
+      const deltaChart = showDeltaChart
+        ? createChart(deltaContainerRef.current, {
+            layout: {
+              background: { type: ColorType.Solid, color: DELTA_BG },
+              textColor: '#94a3b8',
+            },
+            grid: {
+              vertLines: { color: GRID },
+              horzLines: { color: GRID },
+            },
+            width: deltaContainerRef.current.clientWidth,
+            height: deltaContainerRef.current.clientHeight || 140,
+            timeScale: {
+              timeVisible: true,
+              secondsVisible: false,
+              tickMarkFormatter: timeFormatter,
+            },
+            rightPriceScale: {
+              borderColor: GRID,
+            },
+          })
+        : null;
 
       const mainSeries = mainChart.addSeries(CandlestickSeries, {
         upColor: BUY,
@@ -311,17 +314,21 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
         },
       });
 
-      const deltaSeries = deltaChart.addSeries(HistogramSeries, {
-        priceFormat: {
-          type: 'volume',
-        },
-        base: 0,
-      });
+      const deltaSeries = deltaChart
+        ? deltaChart.addSeries(HistogramSeries, {
+            priceFormat: {
+              type: 'volume',
+            },
+            base: 0,
+          })
+        : null;
 
     const syncRange = (range) => {
       visibleRangeRef.current = range;
       if (!range) return;
-      deltaChart.timeScale().setVisibleLogicalRange(range);
+      if (deltaChart) {
+        deltaChart.timeScale().setVisibleLogicalRange(range);
+      }
       const latestIndex = Math.max(dataRef.current.length - 1, 0);
       const distanceFromRight = latestIndex - range.to;
       isUserInteractingRef.current = distanceFromRight > 3;
@@ -339,7 +346,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       setChartError(null);
 
       const handleResize = () => {
-      if (!mainContainerRef.current || !deltaContainerRef.current) return;
+      if (!mainContainerRef.current || (showDeltaChart && !deltaContainerRef.current)) return;
       mainChart.applyOptions({
         width: mainContainerRef.current.clientWidth,
         height: mainContainerRef.current.clientHeight || 420,
@@ -371,10 +378,10 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
       setChartError(error instanceof Error ? error.message : 'Chart initialization failed');
       return undefined;
     }
-  }, [effectiveChartType, footprintBars]);
+  }, [effectiveChartType, footprintBars, showDeltaChart]);
 
   useEffect(() => {
-    if (!data.length || !mainChartRef.current || !mainSeriesRef.current || !deltaChartRef.current || !deltaSeriesRef.current) {
+    if (!data.length || !mainChartRef.current || !mainSeriesRef.current) {
       return;
     }
 
@@ -385,34 +392,34 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
 
     if (!initializedRef.current) {
       mainSeriesRef.current.setData(candleData);
-      deltaSeriesRef.current.setData(deltaBars);
+      if (deltaSeriesRef.current) deltaSeriesRef.current.setData(deltaBars);
       mainChartRef.current.timeScale().fitContent();
-      deltaChartRef.current.timeScale().fitContent();
+      if (deltaChartRef.current) deltaChartRef.current.timeScale().fitContent();
       initializedRef.current = true;
       lastLogicalTimeRef.current = latest.time;
     } else if (previousLastTime === latest.time) {
       mainSeriesRef.current.update(latest);
-      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
+      if (deltaSeriesRef.current) deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
     } else if (previousLastTime !== null && latest.time > previousLastTime) {
       const previousCandle = candleData[candleData.length - 2];
       const previousDelta = deltaBars[deltaBars.length - 2];
       if (previousCandle) mainSeriesRef.current.update(previousCandle);
       if (previousDelta) deltaSeriesRef.current.update(previousDelta);
       mainSeriesRef.current.update(latest);
-      deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
+      if (deltaSeriesRef.current) deltaSeriesRef.current.update(deltaBars[deltaBars.length - 1]);
     } else {
       mainSeriesRef.current.setData(candleData);
-      deltaSeriesRef.current.setData(deltaBars);
+      if (deltaSeriesRef.current) deltaSeriesRef.current.setData(deltaBars);
     }
 
     lastLogicalTimeRef.current = latest.time;
 
     if (!isUserInteractingRef.current) {
       mainChartRef.current.timeScale().scrollToRealTime();
-      deltaChartRef.current.timeScale().scrollToRealTime();
+      if (deltaChartRef.current) deltaChartRef.current.timeScale().scrollToRealTime();
     } else if (visibleRangeRef.current) {
       mainChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
-      deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
+      if (deltaChartRef.current) deltaChartRef.current.timeScale().setVisibleLogicalRange(visibleRangeRef.current);
     }
 
     if (effectiveChartType === 'footprint') {
@@ -448,7 +455,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
   }
 
   return (
-    <div className={`chart-stack ${effectiveChartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
+    <div className={`chart-stack ${showDeltaChart ? 'with-delta' : 'without-delta'} ${effectiveChartType === 'footprint' ? 'footprint-mode' : 'candles-mode'}`}>
       <div className="primary-chart-area">
         <div ref={mainContainerRef} className="main-chart-canvas" />
         <canvas
@@ -462,7 +469,7 @@ export default function CandlesChart({ data, chartType = 'candles' }) {
           }}
         />
       </div>
-      <div ref={deltaContainerRef} className="delta-chart-canvas" />
+      {showDeltaChart ? <div ref={deltaContainerRef} className="delta-chart-canvas" /> : null}
     </div>
   );
 }
