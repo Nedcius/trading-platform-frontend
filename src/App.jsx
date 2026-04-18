@@ -52,6 +52,7 @@ export default function App() {
   const [chartType, setChartType] = useState('candles');
   const [selectedStrategy, setSelectedStrategy] = useState(STRATEGY_OPTIONS[0].name);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
 
   useEffect(() => {
     fetch(`${API_BASE}/health`).then((r) => r.json()).then(setHealth).catch(() => setHealth({ ok: 0 }));
@@ -96,6 +97,22 @@ export default function App() {
     setSidebarOpen(false);
   }, [symbol, timeframe, chartType]);
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && chartType === 'footprint') {
+      setChartType('candles');
+    }
+  }, [isMobile, chartType]);
+
+  const visibleChartTypes = isMobile
+    ? CHART_TYPES.filter((type) => type.value !== 'footprint')
+    : CHART_TYPES;
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -126,7 +143,7 @@ export default function App() {
             <div className="topbar-control timeframe-control">
               <span className="topbar-label">Chart</span>
               <div className="timeframes">
-                {CHART_TYPES.map((type) => (
+                {visibleChartTypes.map((type) => (
                   <button
                     key={type.value}
                     className={type.value === chartType ? 'active' : ''}
